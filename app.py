@@ -22,6 +22,11 @@ def local_css():
             color: #ffffff;
         }
 
+        /* Hide white top header bar */
+        [data-testid="stHeader"] {
+            background-color: transparent !important;
+        }
+
         /* Glassmorphism Cards */
         .glass-card {
             background: rgba(255, 255, 255, 0.05);
@@ -64,8 +69,14 @@ def local_css():
             -webkit-text-fill-color: transparent;
             text-shadow: 0px 0px 10px rgba(79, 172, 254, 0.4);
             text-align: center;
+            margin-top: 0px;
             margin-bottom: 40px;
             animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        /* Adjust main app alignment to remove default top gap */
+        .block-container {
+            padding-top: 3rem !important;
         }
 
         @keyframes glow {
@@ -117,17 +128,30 @@ def local_css():
             font-weight: bold;
             margin-bottom: 20px;
         }
+
+        .sidebar-text {
+            color: #00c6ff !important;
+            font-size: 1.1em;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
         
         /* Headers & Text */
-        h1, h2, h3 {
+        h1, h2, h3, p, span {
             color: #ffffff !important;
+        }
+        
+        .stTextInput label p {
+            color: #00f2fe !important;
+            font-size: 1.1em;
+            font-weight: 600;
         }
         
         /* Inputs */
         div[data-baseweb="input"] {
             border-radius: 10px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
         }
         </style>
@@ -168,7 +192,7 @@ def main():
     # -- Sidebar --
     with st.sidebar:
         st.markdown('<div class="sidebar-title">⚡ AI PPT Generator</div>', unsafe_allow_html=True)
-        st.write("Generate a full PowerPoint presentation from just a topic, completely AI-powered.")
+        st.markdown('<div class="sidebar-text">Generate a full PowerPoint presentation from just a topic, completely AI-powered.</div>', unsafe_allow_html=True)
         
         st.markdown("---")
         topic_input = st.text_input("Enter a topic:", placeholder="e.g. The Future of AI in Space")
@@ -179,7 +203,7 @@ def main():
         st.markdown("<small style='color:#a0a0a0;'>Built with LangChain + MCP + Streamlit</small>", unsafe_allow_html=True)
 
     # -- Main Content --
-    st.markdown('<div class="neon-text">Holo-Deck Presentations</div>', unsafe_allow_html=True)
+    st.markdown('<div class="neon-text">NeuroSlides</div>', unsafe_allow_html=True)
     
     if generate_btn:
         if not topic_input.strip():

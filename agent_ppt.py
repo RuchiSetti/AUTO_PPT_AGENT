@@ -25,11 +25,15 @@ def plan_slides(state: AgentState):
 
     prompt = f"""Create a 5-slide presentation on {topic}.
 
+IMPORTANT:
+- Each slide MUST have 3 to 5 bullet points
+- Each bullet MUST be SHORT (1 line only)
+
 Return STRICTLY in this format:
 [
   {{
     "title": "Slide title",
-    "content": ["point1", "point2", "point3"]
+    "content": ["Point 1", "Point 2", "Point 3"]
   }}
 ]
 

@@ -54,8 +54,10 @@ def add_slide(title: str, content: str, topic: str = "default") -> str:
             first = False
         else:
             p = tf.add_paragraph()
+        
         run = p.add_run()
         run.text = line
+        run.level = 0
         run.font.size = Pt(22)
         run.font.color.rgb = RGBColor(255, 255, 255)  # White
 

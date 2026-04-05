@@ -91,11 +91,17 @@ Step 6 — Run the app
 ```bash
 streamlit run app.py
 ```
-
+```bash
 Open your browser at **http://localhost:8501**
+```
+
+```bash
+Demo Link: **https://youtu.be/FtO1bSt0JQ8**
+```
 
 ---
 
 ## License
 
 MIT — use it, modify it, build on it.
+

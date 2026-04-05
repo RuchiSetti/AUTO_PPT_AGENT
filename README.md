@@ -1,172 +1,309 @@
-# 🚀 AI PPT Generator — Turn Any Topic into a Presentation in Seconds
+# 🚀 AI PPT Generator — Holo-Deck Presentations
 
-Ever had to make a PowerPoint at the last minute and just... didn't want to? Yeah, that's exactly why I built this.
+> **Type a topic. Get a PowerPoint. Done.**  
+> An AI-powered multi-agent pipeline that turns any topic into a fully styled `.pptx` file — no manual slide work, ever.
 
-This project takes a topic you type in, sends it through an AI agent, and spits out a fully designed `.pptx` file — complete with a custom background, styled slides, gold titles, and bullet points. You don't touch a single slide manually.
-
----
-
-## What It Actually Does
-
-You type something like *"The Future of AI in Space"* and hit Generate. Here's what happens behind the scenes:
-
-1. **Google Gemini** reads your topic and plans out 5 slides — each with a proper title and 3–5 bullet points.
-2. **LangGraph** orchestrates the whole flow — first plan, then build. It's basically an agent that has two jobs and does them in order.
-3. **A local MCP server** (`ppt_mcp_server.py`) handles the actual PowerPoint creation. It's a small tool server that receives commands like "add this slide" and does the dirty work with `python-pptx`.
-4. The finished `.pptx` lands in a `ppt_storage/` folder, and Streamlit shows you a live preview of every slide before you download it.
-
-The UI is a Streamlit app with a cyberpunk/glassmorphism look — dark gradients, glowing text, floating cards for each slide. It's a bit extra, intentionally.
+![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?style=flat-square&logo=streamlit)
+![LangGraph](https://img.shields.io/badge/LangGraph-Agent-green?style=flat-square)
+![MCP](https://img.shields.io/badge/MCP-Tool%20Server-purple?style=flat-square)
+![Gemini](https://img.shields.io/badge/Google-Gemini-orange?style=flat-square&logo=google)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 ---
 
-## Project Structure
+## 📌 What Is This?
+
+This project is a **multi-agent AI system** that generates a complete PowerPoint presentation from just a topic string. You type *"Solar System"* or *"Machine Learning Basics"* — and the system plans the slides, writes the content, designs the layout, and exports a `.pptx` file, all on its own.
+
+It's built using **LangGraph for agent orchestration**, **Google Gemini** as the LLM brain, **MCP (Model Context Protocol)** as the tool execution layer, and **python-pptx** to actually build the file. A **Streamlit** frontend ties it all together with a live preview.
+
+---
+
+## 🏗️ Architecture
+
+The system is split into **3 clear layers**. Each layer has one job and hands off to the next.
 
 ```
-├── app.py                  # Streamlit frontend — the UI you interact with
-├── agent_ppt.py            # LangGraph agent — plans slides, then calls the MCP server
-├── ppt_mcp_server.py       # MCP tool server — creates and saves the actual PPTX file
-├── config.py               # Your API keys and model settings (you create this)
+┌─────────────────────────────────────────────┐
+│           LAYER 1 — Frontend                │
+│              Streamlit UI                   │
+│   (User input → live preview → download)    │
+└─────────────────┬───────────────────────────┘
+                  │  topic string
+                  ▼
+┌─────────────────────────────────────────────┐
+│         LAYER 2 — Agent Brain               │
+│          LangGraph (StateGraph)             │
+│                                             │
+│   ┌─────────────┐     ┌─────────────────┐   │
+│   │ plan_slides │────▶│   create_ppt    │   │
+│   │ (Gemini LLM)│     │  (calls MCP)    │   │
+│   └─────────────┘     └────────┬────────┘   │
+└────────────────────────────────┼────────────┘
+                                 │  tool calls (stdio)
+                                 ▼
+┌─────────────────────────────────────────────┐
+│         LAYER 3 — Tool Execution            │
+│          MCP Server (FastMCP)               │
+│                                             │
+│   create_presentation()                     │
+│   add_slide()  ×5                           │
+│   save_presentation()                       │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+         📄 output.pptx
+         (ppt_storage/)
+```
+
+---
+
+## 🔄 Full Flow — Step by Step
+
+Here's exactly what happens from the moment you hit **Generate**:
+
+```
+User types topic
+       │
+       ▼
+  Streamlit (app.py)
+  calls graph.astream()
+       │
+       ▼
+  LangGraph Agent
+  ┌────────────────────────────────────────┐
+  │  Node 1: plan_slides()                 │
+  │  → Sends prompt to Google Gemini       │
+  │  → Gemini returns 5 slides as JSON     │
+  │    [{title, content:[...]}, ...]       │
+  └────────────────────┬───────────────────┘
+                       │  slides[] stored in AgentState
+                       ▼
+  ┌────────────────────────────────────────┐
+  │  Node 2: create_ppt()                  │
+  │  → Spins up ppt_mcp_server.py          │
+  │    as a subprocess (stdio transport)   │
+  │  → Calls create_presentation tool      │
+  │  → Loops through each slide            │
+  │    → Calls add_slide tool per slide    │
+  │  → Calls save_presentation tool        │
+  └────────────────────┬───────────────────┘
+                       │
+                       ▼
+  MCP Server (ppt_mcp_server.py)
+  → python-pptx builds the PPTX
+  → Background image applied to each slide
+  → Gold title + white bullets styled
+  → Saves to ppt_storage/output.pptx
+                       │
+                       ▼
+  Streamlit renders glassmorphism slide previews
+  User hits download → gets the .pptx
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Frontend | Streamlit | UI, live preview, download button |
+| LLM | Google Gemini (via LangChain) | Slide content planning & generation |
+| Agent | LangGraph (StateGraph) | Orchestrates plan → build pipeline |
+| Tool Protocol | MCP (FastMCP, stdio) | Agent ↔ tool server communication |
+| PPT Engine | python-pptx | Builds the actual `.pptx` file |
+| Config | Python class | API keys, model name, temperature |
+
+---
+
+## 📁 Project Structure
+
+```
+ai-ppt-generator/
+│
+├── app.py                  # Streamlit UI — entry point
+├── agent_ppt.py            # LangGraph agent (plan + create nodes)
+├── ppt_mcp_server.py       # MCP tool server (PPTX creation logic)
+├── config.py               # API keys + model config (you create this)
+├── test_slide.py           # Quick test script for pptx rendering
+├── requirements.txt        # Python dependencies
+│
 ├── assets/
-│   └── space.png           # Background image used on every slide
-├── ppt_storage/            # Where the generated PPTX files are saved
-└── requirements.txt        # Python dependencies
+│   └── space.png           # Background image for every slide
+│
+└── ppt_storage/            # Generated PPTX files land here
+    └── output.pptx
 ```
 
 ---
 
-## How to Set It Up
+## ⚙️ Setup & Running
 
-### 1. Clone the repo
+### Prerequisites
+
+- Python 3.10+
+- A Google Gemini API key — [get one free here](https://aistudio.google.com/app/apikey)
+
+---
+
+### Step 1 — Clone the repo
 
 ```bash
 git clone https://github.com/your-username/ai-ppt-generator.git
 cd ai-ppt-generator
 ```
 
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-The key packages you need are:
-
-```
-streamlit
-langchain-google-genai
-langgraph
-mcp
-python-pptx
-```
-
-If `requirements.txt` is empty (oops), just run:
+### Step 2 — Install dependencies
 
 ```bash
 pip install streamlit langchain-google-genai langgraph mcp python-pptx
 ```
 
-### 3. Create your `config.py`
+Or if `requirements.txt` is populated:
 
-Make a file called `config.py` in the root folder with this:
+```bash
+pip install -r requirements.txt
+```
+
+### Step 3 — Create `config.py`
+
+Create a file called `config.py` in the root folder:
 
 ```python
 class Config:
     GOOGLE_API_KEY = "your-google-gemini-api-key-here"
-    MODEL_NAME = "gemini-1.5-flash"   # or whichever Gemini model you're using
+    MODEL_NAME = "gemini-1.5-flash"
     TEMPERATURE = 0.7
 ```
 
-You can get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+### Step 4 — Add a background image
 
-### 4. Add your background image
+Create an `assets/` folder and drop any 16:9 image in as `space.png`:
 
-Drop an image named `space.png` into an `assets/` folder. It'll be used as the background on every slide. Any 16:9 image works — space, abstract gradients, dark textures, whatever fits your vibe.
+```bash
+mkdir assets
+# Copy your background image → assets/space.png
+```
 
-### 5. Create the output folder
+### Step 5 — Create the output folder
 
 ```bash
 mkdir ppt_storage
 ```
 
-### 6. Run it
+### Step 6 — Run the app
 
 ```bash
 streamlit run app.py
 ```
 
-Open your browser at `http://localhost:8501` and you're good to go.
+Open your browser at **http://localhost:8501**
 
 ---
 
-## Using It
-
-Once the app is running:
-
-- Type your topic in the sidebar (e.g. *"Climate Change"*, *"Machine Learning Basics"*, *"History of the Roman Empire"*)
-- Hit **Generate Presentation**
-- Watch the status bar — it'll tell you what's happening (planning, generating, compiling)
-- Slide previews show up in the main area once done
-- Hit the download button to grab your `.pptx`
-
-That's it. The whole thing usually takes 10–20 seconds depending on API response times.
-
----
-
-## How the Code Connects
-
-If you want to understand what's talking to what:
+## 🖥️ UI Preview
 
 ```
-app.py  →  agent_ppt.py (LangGraph graph)
-               ├── plan_slides()   →  Gemini API (generates slide content)
-               └── create_ppt()   →  ppt_mcp_server.py (via MCP stdio)
-                                       ├── create_presentation()
-                                       ├── add_slide()  (×5)
-                                       └── save_presentation()
+┌──────────────────────────────────────────────────────────────┐
+│  Sidebar                │  Main Content Area                 │
+│  ───────────────────    │  ─────────────────────────────     │
+│                         │                                    │
+│  ⚡ AI PPT Generator    │   ✨ HOLO-DECK PRESENTATIONS ✨    │
+│                         │      (animated neon header)        │
+│  Generate a full PPT    │                                    │
+│  from just a topic.     │  ┌────────────────────────────┐   │
+│                         │  │  🔵 Status: Planning...     │   │
+│  Enter a topic:         │  └────────────────────────────┘   │
+│  [_________________ ]   │                                    │
+│                         │  ┌──────────┐   ┌──────────┐     │
+│  [🚀 Generate Pres.. ]  │  │ Slide 1  │   │ Slide 2  │     │
+│                         │  │──────────│   │──────────│     │
+│  ─────────────────      │  │ • Point  │   │ • Point  │     │
+│  Built with             │  │ • Point  │   │ • Point  │     │
+│  LangChain + MCP        │  │ • Point  │   │ • Point  │     │
+│  + Streamlit            │  └──────────┘   └──────────┘     │
+│                         │                                    │
+│                         │   [ ⬇️  Download PPT as .pptx ]   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-The MCP server runs as a subprocess — `agent_ppt.py` spins it up, sends tool calls to it over stdin/stdout, and shuts it down when done. It's a clean separation: the agent doesn't care *how* the PPTX gets made, and the server doesn't care *what* the topic is.
+**What the UI includes:**
+- Dark cyberpunk / glassmorphism visual theme
+- Real-time status updates during each generation phase
+- 2-column grid with a preview card per slide
+- One-click `.pptx` download once generation is done
 
 ---
 
-## Customizing It
+## 🧠 Key Design Decisions
 
-**Want a different background per topic?**  
-In `ppt_mcp_server.py`, the `add_slide()` function receives the `topic` parameter. You could map topics to different images in `assets/` and swap them conditionally.
+**Why MCP instead of calling python-pptx directly in the agent?**
 
-**Want more or fewer slides?**  
-Change the `5-slide` instruction in the `plan_slides()` prompt inside `agent_ppt.py`.
+MCP creates a clean boundary between the *thinking* layer and the *doing* layer. The agent doesn't know or care how PowerPoints are built — it just calls named tools. This also means you could swap the tool server entirely (use Google Slides API, for example) without touching the agent code.
 
-**Want different fonts or colors?**  
-Edit `add_slide()` in `ppt_mcp_server.py` — that's where all the `RGBColor`, `Pt()`, and font settings live.
+**Why LangGraph instead of plain LangChain?**
 
-**Want to use a different LLM?**  
-Swap out `ChatGoogleGenerativeAI` in `agent_ppt.py` for any LangChain-compatible model (OpenAI, Anthropic, Ollama, etc.) and update `config.py` accordingly.
+LangGraph lets you define explicit nodes and edges. For this pipeline the order is strict — you *must* plan before you build. A `StateGraph` with `plan → create → END` makes that constraint explicit and gives streaming state output so the UI can update in real time.
 
----
+**Why stdio transport for MCP?**
 
-## Known Quirks
-
-- The MCP server is stateful (uses a global `ppt` variable), so if something crashes mid-generation, you might need to restart. It's fine for this use case but worth knowing.
-- Streamlit's `asyncio.run()` can occasionally throw a "event loop already running" error in certain environments. If that happens, try running with `nest_asyncio` or use a fresh terminal.
-- The slides always use the same `space.png` background regardless of topic — intentional for now, easy to change if you want.
+The MCP server runs as a subprocess. No network ports, no auth, no setup. The agent spawns it, uses it, and it shuts down. Clean and self-contained.
 
 ---
 
-## Built With
+## 🔧 Customization
 
-- [Streamlit](https://streamlit.io/) — UI framework
-- [LangChain + Google Gemini](https://python.langchain.com/) — LLM integration
-- [LangGraph](https://langchain-ai.github.io/langgraph/) — Agent orchestration
-- [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) — Tool server communication
-- [python-pptx](https://python-pptx.readthedocs.io/) — PowerPoint generation
+**Change number of slides**
+
+Edit the prompt string in `plan_slides()` inside `agent_ppt.py` — change *"5-slide"* to whatever you want.
+
+**Use a different LLM**
+
+Swap `ChatGoogleGenerativeAI` for any LangChain-compatible model:
+
+```python
+# OpenAI
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI(model="gpt-4o", api_key="...")
+
+# Anthropic Claude
+from langchain_anthropic import ChatAnthropic
+llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", api_key="...")
+
+# Local via Ollama
+from langchain_ollama import ChatOllama
+llm = ChatOllama(model="llama3")
+```
+
+**Change slide design**
+
+All colors, fonts, and layout live in `add_slide()` inside `ppt_mcp_server.py`. Look for `RGBColor`, `Pt()`, and `Inches()` calls — those control everything visual.
+
+**Topic-based backgrounds**
+
+`add_slide()` already receives the `topic` parameter. You can map topics to different images in `assets/` and load them conditionally based on keywords.
 
 ---
 
-## Contributing
+## ⚠️ Known Issues
 
-If you want to add features — multi-language support, different slide templates, better error handling, whatever — feel free to fork and open a PR. The codebase is small and pretty readable, shouldn't take long to get oriented.
+- The MCP server uses a global `ppt` object. If the server crashes mid-generation, restart the Streamlit app before retrying.
+- Streamlit's `asyncio.run()` can clash with existing event loops in some environments. Fix: `pip install nest_asyncio` and add `nest_asyncio.apply()` at the top of `app.py`.
+- The output filename is hardcoded as `output.pptx` — running two generations quickly overwrites the first. Add a timestamp to the filename if you want to keep multiple outputs.
 
 ---
 
-*Built to skip the boring parts of making presentations.*
+## 🏷️ Tags
+
+`AI` · `LangChain` · `LangGraph` · `MCP` · `Streamlit` · `PPT-Generator` · `Google-Gemini` · `python-pptx` · `Multi-Agent` · `Generative-AI`
+
+---
+
+## 📄 License
+
+MIT — use it, modify it, build on it.
+
+---
+
+*Built to skip the boring part of making presentations.*

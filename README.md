@@ -4,7 +4,7 @@ Type a topic. Get a PowerPoint.
 
 This is a multi-agent AI system that generates a complete PowerPoint presentation from just a topic string. You type "Solar System" or "Machine Learning Basics" — and the system plans the slides, writes the content with bullet points, designs the layout, and exports a `.pptx` file, all on its own. Each presentation is 5 slides, with a title and 3–5 bullet points per slide, styled with a custom background.
 
-![Preview](assets/preview.png)
+
 
 ---
 

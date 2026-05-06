@@ -67,8 +67,8 @@ Create a file called `config.py` in the root folder:
 ```python
 class Config:
     GOOGLE_API_KEY = "your-google-gemini-api-key-here"
-    MODEL_NAME = "gemini-1.5-flash"
-    TEMPERATURE = 0.7
+    MODEL_NAME = "gemini-2.5-flash"
+    TEMPERATURE = 0.2
 ```
 
 Step 4 — Add a background image
